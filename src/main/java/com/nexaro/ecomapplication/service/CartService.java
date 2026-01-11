@@ -7,14 +7,18 @@ import com.nexaro.ecomapplication.model.User;
 import com.nexaro.ecomapplication.repository.CartItemRepository;
 import com.nexaro.ecomapplication.repository.ProductRepository;
 import com.nexaro.ecomapplication.repository.UserRepository;
+import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
+import org.jspecify.annotations.Nullable;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
+import java.util.List;
 import java.util.Optional;
 
 @Service
 @RequiredArgsConstructor
+@Transactional
 public class CartService {
     private final ProductRepository productRepository;
     private final UserRepository userRepository;
@@ -53,5 +57,33 @@ public class CartService {
 
        }
        return  true;
+    }
+
+    public boolean deleteItemFromCart(String userId, Long productId) {
+        Optional<Product> productOpt =  productRepository.findById(productId);
+        Optional<User> userOpt = userRepository.findById(Long.valueOf(userId));
+
+        if (productOpt.isPresent() && userOpt.isPresent()) {
+            cartItemRepository.deleteByUserAndProduct(
+                    userOpt.get(),
+                    productOpt.get()
+            );
+            return true;
+        }
+
+        return false;
+    }
+
+
+    public @Nullable List<CartItem> getCart(String userId) {
+        return userRepository.findById(Long.valueOf(userId))
+                .map(cartItemRepository::findByUser)
+                .orElseGet(List::of);
+    }
+
+    public void clearCart(String userid) {
+        userRepository.findById(Long.valueOf(userid))
+                .ifPresent(cartItemRepository::deleteByUser
+                );
     }
 }
